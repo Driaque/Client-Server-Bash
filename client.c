@@ -54,8 +54,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	while (1) {
-		pid = fork();
-		if (!pid) {
+		//pid = fork();
+		//if (!pid) {
 			//prompt
 			write(STDOUT_FILENO, ">>", 2);
 			n = read(STDIN_FILENO, message, MAX_LENGTH);
@@ -68,15 +68,19 @@ int main(int argc, char* argv[]) {
 				kill(getppid(), SIGTERM);
 				exit(0);
 			}
+			//printf("waiting for server...\n");
+			do {
 			if (n = read(server, message, MAX_LENGTH)) {
 				message[n] = '\0';
 				write(STDOUT_FILENO, message, n + 1);
+				//printf("server returned %s\n", message);
 			}
-			exit(0);
-		}
-		else {
-			wait(&status);
-		}
+			} while (strncmp(message, "DONE", 4));
+			//exit(0);
+		//}
+		//else {
+		//	wait(&status);
+		//}
 	}
 }
 

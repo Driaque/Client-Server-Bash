@@ -18,12 +18,95 @@
 #define MAX_LENGTH 1000000
 // maximum lenth of each command and each argument
 #define MAX_WORD_LENGTH 40
+int run(char* buff, int length)
+{
+	int i = 0;
+	int x = 0;
+	int y = 0;
+	int z = 0;
+	//i = 0;
+	
+	int exitStatus = -1;
+	//char buff[100]; //Buffer
+	char *image;
+	char *commands[40];
+	char delimiter[40];
+	char *arguments[10];
+	char *tkn;
+	
+	image = strdup(buff);
+	//printf("executing command(s)......\n");
+	tkn = strtok(buff, "&;|\n"); 
+	while (tkn != NULL)
+	{
+		delimiter[i] = image[tkn - buff + strlen(tkn)];
+		commands[i] = tkn;
+		i++;
+		tkn = strtok(NULL, "&;|\n"); 
+		
+	}
+	commands[i] = NULL;
+	y = i;
+	i = 0;
+	while (i <= y)
+	{
+		i++;
+	}
+	i = 0;
+	exitStatus = -1;
+	while (i < y)
+	{
+		if (exitStatus > -1) {
+			//if previous command fails
+			if (delimiter[i - 1] == '&') {
+				if (exitStatus != 0) {
+					break;
+				}
+			} 
+		}
+
+		tkn = strtok(commands[i], " ");
+		x = 0;
+		while (tkn != NULL & x < 10)
+		{
+			arguments[x] = tkn;
+			x++;
+			tkn = strtok(NULL, " ");
+		}
+		arguments[x] = NULL;
+		z = x;
+		x = 0;
+		if (strcmp(arguments[0], "exit") == 0)
+		{
+			exit(0);
+		}
+		while (x <= z)
+		{
+			x++;
+		}
+		//child Process
+		if (fork()== 0)
+		{
+			//check if command is Valid
+			execvp(arguments[0], arguments);
+			fprintf(stderr, "Invalid Command detected!\n");
+			exit(1);
+		}
+		else
+		{
+				wait(&exitStatus);
+		//printf("\n");
+		}
+		i++;
+	}
+}
 
 void serverClient(int s);
 int mySplit(char** res, char* s, char* delim);
 
 int main(int argc, char* argv[]) {
 	int sd, client, portNumber, status;
+	
 	socklen_t len;
 	struct sockaddr_in servAdd;
 
@@ -43,18 +126,23 @@ int main(int argc, char* argv[]) {
 	sscanf(argv[1], "%d", &portNumber);
 	servAdd.sin_port = htons((uint16_t)portNumber);
 	bind(sd, (struct sockaddr*) &servAdd, sizeof(servAdd));
-
+    int Count=0;
 	// start listening to the assigned port for at most 5 clients
+	
 	listen(sd, 5);
+	fprintf(stderr,"waiting for clients to connect");
 	while (1) {
 		// wait for clients from any IP address
+		
 		client = accept(sd, (struct sockaddr*) NULL, NULL);
-		printf("Got a client\n");
+       //// printf("Got a new client\n");
+		printf("Client %d connected\n", ++Count);
+		printf("Got a new client\n");
 		// fork a process for each client
-		if (!fork())
+		if (fork()==0)
 			serverClient(client);
-		close(client);
-		waitpid(0, &status, WNOHANG);
+		//close(client);
+		//waitpid(0, &status, WNOHANG);
 	}
 
 }
@@ -96,46 +184,44 @@ int mySplit(char** res, char* s, char* delim) {
 *	parameters:
 *		int sd: socket descriptor returned by socket().
 */
-void serverClient(int sd) {
+void serverClient(int sd) 
+{
 	char message[MAX_LENGTH];
-	int n, pid, status;
+	int n, pid;
+	int status = -1;
 	char **res;
-
+	char *token;
+    char *copy;
+	char *cmd_array[40];
+	char *args[10];
+	char delim_array[40];
+	int k = 0;
+	int j = 0;
+	int l = 0;
+	int i=0;
 	//make the screen descriptor designate the client socket
 	dup2(sd, STDOUT_FILENO);
-	while (1) {
-		pid = fork();
+	dup2(sd, STDIN_FILENO);
+	dup2(sd, STDERR_FILENO);
+	while (1) 
+	{
+		//pid = fork();
 		// fork a new process for every command
-		if (!pid) {
+	  //if (!pid) 
+	  //{
+		 int i=0;
 			//read from client
-			if (n = read(sd, message, MAX_LENGTH)) {
+			//printf("reading from client....\n");
+		 n = read(sd, message, MAX_LENGTH) ;
+		 //printf("read done\n");
+		 
 				// quit if the client sends 'quit'
-				message[n] = '\0';
-				if (!strcasecmp(message, "quit\n")) {
-					fprintf(stderr, "%s\n", "Client disconnected, waiting for a new client...");
-					close(sd);
-					kill(getppid(), SIGTERM);
-					exit(0);
-				}
-				//split commands with space" "
-				res = (char**)malloc(sizeof(char*) * MAX_WORD_LENGTH);
-				int num = mySplit(res, message, " ");
-
-				int i;
-				// execute commands and output it to the client
-				if (execvp(res[0], res) == -1) {
-					printf("Error in executing the command\n");
-				}
-				// free the memory allocated before
-				for (i = 0; i < num; i++) {
-					free(res[i]);
-				}
-				free(res);
-				exit(0);
-			}
-		}
-		else {
-			wait(&status);
-		}
-	}
+		 message[n] = '\0';
+		 run(message, n);
+		printf("DONE\n");
+		
+	 //}
+		
+    }
+    
 }
